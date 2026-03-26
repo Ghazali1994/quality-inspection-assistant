@@ -1,11 +1,6 @@
 import streamlit as st
 import cv2
 import numpy as np
-import os
-from datetime import datetime
-
-# create folder to save defects
-os.makedirs("defects", exist_ok=True)
 
 def detect_defects_and_annotate(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -15,7 +10,7 @@ def detect_defects_and_annotate(image):
     defects = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area > 200:
+        if area > 100:
             x, y, w, h = cv2.boundingRect(cnt)
             defects.append((x, y, w, h))
             cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
@@ -23,13 +18,14 @@ def detect_defects_and_annotate(image):
     return image, defects
 
 
-st.title("🏭 AI Quality Inspection System")
+st.set_page_config(page_title="🛡️ Live Quality Inspection")
+st.title("🛡️ Live Quality Inspection - Real Time")
 
-start = st.button("▶ Start Inspection")
-stop = st.button("⏹ Stop")
+start = st.button("▶️ Start Camera")
+stop = st.button("⏹️ Stop Camera")
 
 frame_placeholder = st.empty()
-status_placeholder = st.empty()
+info_placeholder = st.empty()
 
 if start:
     cap = cv2.VideoCapture(0)
@@ -37,28 +33,19 @@ if start:
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
+            st.error("Camera not accessible")
             break
 
         annotated, defects = detect_defects_and_annotate(frame)
-
-        # decision logic
-        if len(defects) == 0:
-            status = "✅ OK"
-        else:
-            status = "❌ NOT OK"
-
-            # save defective image
-            filename = datetime.now().strftime("defects/defect_%H%M%S.jpg")
-            cv2.imwrite(filename, annotated)
 
         frame_placeholder.image(
             cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB),
             channels="RGB"
         )
 
-        status_placeholder.markdown(f"# {status}")
-        status_placeholder.markdown(f"### Defects: {len(defects)}")
+        info_placeholder.markdown(f"### 🧪 Defects Detected: {len(defects)}")
 
+        # stop button
         if stop:
             break
 
