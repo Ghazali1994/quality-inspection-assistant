@@ -59,7 +59,7 @@ def detect_defects_and_annotate(image):
 # Streamlit UI
 # -------------------------------
 st.set_page_config(page_title="AI Leather Defect Detection Tool")
-st.title("🤖 AI Leather Defect Detection Tool")
+st.title("AI Leather Defect Detection Tool")
 st.write("Upload, Capture, or Paste an image to inspect for defects.")
 
 # selector
