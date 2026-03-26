@@ -9,7 +9,7 @@ from ultralytics import YOLO
 # Load YOLO model (load once)
 # -------------------------------
 # Replace with your trained model later:
-# model = YOLO("best.pt")
+# model = YOLO("runs/detect/train20/weights/best.pt")
 model = YOLO("yolov8n.pt")
 
 
