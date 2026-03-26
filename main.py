@@ -158,5 +158,3 @@ if image is not None:
             f"Size: {w}x{h} | "
             f"Area: {w*h}"
         )
-
-high contrast as well as medium contrast light colors & avoid low contrast
