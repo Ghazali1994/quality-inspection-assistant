@@ -1,6 +1,7 @@
 import streamlit as st
 import cv2
 import numpy as np
+from PIL import Image
 
 def detect_defects_and_annotate(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -18,35 +19,47 @@ def detect_defects_and_annotate(image):
     return image, defects
 
 
-st.set_page_config(page_title="🛡️ Live Quality Inspection")
-st.title("🛡️ Live Quality Inspection - Real Time")
+st.set_page_config(page_title="🛡️ Quality Inspection Assistant")
+st.title("🛡️ Quality Inspection Assistant")
+st.write("Upload OR capture a product image to inspect for defects.")
 
-start = st.button("▶️ Start Camera")
-stop = st.button("⏹️ Stop Camera")
+# Option selector
+option = st.radio(
+    "Choose input method:",
+    ["Upload Image", "Capture from Camera"]
+)
 
-frame_placeholder = st.empty()
-info_placeholder = st.empty()
+image = None
 
-if start:
-    cap = cv2.VideoCapture(0)
+# Upload option
+if option == "Upload Image":
+    uploaded_file = st.file_uploader("Choose an image", type=["jpg", "jpeg", "png"])
+    if uploaded_file is not None:
+        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            st.error("Camera not accessible")
-            break
+# Camera option
+elif option == "Capture from Camera":
+    camera_image = st.camera_input("Capture Image")
+    if camera_image is not None:
+        bytes_data = camera_image.getvalue()
+        file_bytes = np.asarray(bytearray(bytes_data), dtype=np.uint8)
+        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
-        annotated, defects = detect_defects_and_annotate(frame)
 
-        frame_placeholder.image(
-            cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB),
-            channels="RGB"
+# Run detection
+if image is not None:
+    annotated_image, defects = detect_defects_and_annotate(image.copy())
+
+    st.image(
+        cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB),
+        caption="Annotated Image",
+        use_column_width=True
+    )
+
+    st.markdown(f"### 🧪 {len(defects)} defect(s) found")
+
+    for idx, (x, y, w, h) in enumerate(defects, 1):
+        st.write(
+            f"**Defect {idx}:** Location: (x={x}, y={y}), Size: {w}x{h}, Area: {w*h}"
         )
-
-        info_placeholder.markdown(f"### 🧪 Defects Detected: {len(defects)}")
-
-        # stop button
-        if stop:
-            break
-
-    cap.release()
