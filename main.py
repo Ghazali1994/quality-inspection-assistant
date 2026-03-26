@@ -4,10 +4,8 @@ import numpy as np
 import os
 from datetime import datetime
 
+# create folder to save defects
 os.makedirs("defects", exist_ok=True)
-
-# defect tolerance (area)
-MAX_ALLOWED_DEFECT_AREA = 500
 
 def detect_defects_and_annotate(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -17,35 +15,21 @@ def detect_defects_and_annotate(image):
     defects = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
-
-        if area > 100:
+        if area > 200:
             x, y, w, h = cv2.boundingRect(cnt)
-
-            defects.append((x, y, w, h, area))
-
-            # color based on tolerance
-            if area > MAX_ALLOWED_DEFECT_AREA:
-                color = (0, 0, 255)  # red = reject
-            else:
-                color = (0, 255, 255)  # yellow = allowed small defect
-
-            cv2.rectangle(image, (x, y), (x+w, y+h), color, 2)
+            defects.append((x, y, w, h))
+            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
     return image, defects
 
 
-st.title("🏭 AI Leather Inspection System")
+st.title("🏭 AI Quality Inspection System")
 
 start = st.button("▶ Start Inspection")
 stop = st.button("⏹ Stop")
 
 frame_placeholder = st.empty()
 status_placeholder = st.empty()
-stats_placeholder = st.empty()
-
-# counters
-total_count = 0
-reject_count = 0
 
 if start:
     cap = cv2.VideoCapture(0)
@@ -55,26 +39,17 @@ if start:
         if not ret:
             break
 
-        total_count += 1
-
         annotated, defects = detect_defects_and_annotate(frame)
 
-        # reject logic
-        reject = False
-        for d in defects:
-            if d[4] > MAX_ALLOWED_DEFECT_AREA:
-                reject = True
-
-        if reject:
-            status = "❌ NOT OK"
-            reject_count += 1
-
-            filename = datetime.now().strftime("defects/reject_%H%M%S.jpg")
-            cv2.imwrite(filename, annotated)
-        else:
+        # decision logic
+        if len(defects) == 0:
             status = "✅ OK"
+        else:
+            status = "❌ NOT OK"
 
-        reject_rate = (reject_count / total_count) * 100
+            # save defective image
+            filename = datetime.now().strftime("defects/defect_%H%M%S.jpg")
+            cv2.imwrite(filename, annotated)
 
         frame_placeholder.image(
             cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB),
@@ -82,14 +57,7 @@ if start:
         )
 
         status_placeholder.markdown(f"# {status}")
-
-        stats_placeholder.markdown(f"""
-### 📊 Inspection Stats
-Total Inspected: {total_count}  
-Rejected: {reject_count}  
-Reject Rate: {reject_rate:.2f}%  
-Defects Found: {len(defects)}
-""")
+        status_placeholder.markdown(f"### Defects: {len(defects)}")
 
         if stop:
             break
