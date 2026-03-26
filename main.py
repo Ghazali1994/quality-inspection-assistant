@@ -21,7 +21,7 @@ def detect_defects_and_annotate(image):
 
 
 st.set_page_config(page_title="🛡️ Quality Inspection Assistant")
-st.title("🛡️ Leather Defect Detection Assistant")
+st.title("🛡️ Leather Defect Detection")
 st.write("Upload, Capture, or Paste an image to inspect for defects.")
 
 # selector
