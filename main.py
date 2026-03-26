@@ -5,50 +5,49 @@ from PIL import Image
 from streamlit_paste_button import paste_image_button
 
 # -------------------------------
-# Robust Defect Detection Function
+# Medium & High Contrast Defect Detection
 # -------------------------------
 def detect_defects_and_annotate(image):
-    if image is None:
-        return None, []
-
     img = image.copy()
+
+    # Convert to grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Estimate background (smooth leather texture)
+    # Estimate background (remove normal leather texture)
     background = cv2.GaussianBlur(gray, (51, 51), 0)
-    diff = cv2.absdiff(gray, background)
-    diff = cv2.normalize(diff, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
 
-    # Adaptive threshold based on image statistics
-    mean, std = cv2.meanStdDev(diff)
-    mean = mean.item()
-    std = std.item()
-    low_thresh = max(10, int(mean + 0.5 * std))  # ignore very subtle differences
-    high_thresh = 255
+    # Difference from background
+    diff = cv2.absdiff(gray, background)
+
+    # Normalize contrast
+    diff = cv2.normalize(diff, None, 0, 255, cv2.NORM_MINMAX)
+
+    # Thresholds: detect medium and high contrast light defects
+    # Ignore very low contrast (noise / normal texture)
+    low_thresh = 20   # below this → ignore
+    high_thresh = 255 # max threshold
+
     _, thresh = cv2.threshold(diff, low_thresh, high_thresh, cv2.THRESH_BINARY)
 
-    # Edge detection for scratches
-    edges = cv2.Canny(gray, 50, 150)
-    edges = cv2.dilate(edges, np.ones((3, 3), np.uint8), iterations=1)
-
-    # Combine thresholded defects and edges
-    combined = cv2.bitwise_or(thresh, edges)
-
-    # Morphology cleanup to remove noise
-    kernel = np.ones((3, 3), np.uint8)
-    morph = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel, iterations=2)
+    # Morphology cleanup to remove small noise
+    kernel = np.ones((5, 5), np.uint8)
+    morph = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
     morph = cv2.morphologyEx(morph, cv2.MORPH_OPEN, kernel, iterations=1)
 
     # Find contours
     contours, _ = cv2.findContours(morph, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     defects = []
+
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area < 50:  # ignore tiny noise
+        if area < 120:  # ignore tiny noise
             continue
+
         x, y, w, h = cv2.boundingRect(cnt)
         defects.append((x, y, w, h))
+
+        # Draw WHITE bounding box
         cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 255), 2)
 
     return img, defects
@@ -57,11 +56,11 @@ def detect_defects_and_annotate(image):
 # Streamlit UI
 # -------------------------------
 st.set_page_config(page_title="AI Leather Defect Detection Tool")
-st.title("🟢 AI Leather Defect Detection Tool")
-st.write("Upload, Capture, or Paste an image to inspect for leather defects.")
+st.title("AI Leather Defect Detection Tool")
+st.write("Upload, Capture, or Paste an image to inspect for defects.")
 
-# Input method
 option = st.radio("Choose input method:", ["Upload Image", "Capture from Camera", "Paste Image"])
+
 image = None
 
 # -------------------------------
@@ -88,7 +87,7 @@ elif option == "Capture from Camera":
 # -------------------------------
 elif option == "Paste Image":
     pasted = paste_image_button("📋 Paste Image")
-    if pasted is not None and pasted.image_data is not None:
+    if pasted.image_data is not None:
         pil_image = pasted.image_data
         image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
 
@@ -98,15 +97,11 @@ elif option == "Paste Image":
 if image is not None:
     annotated_image, defects = detect_defects_and_annotate(image)
 
-    if annotated_image is not None:
-        st.image(cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB),
-                 caption="Annotated Image",
-                 use_column_width=True)
+    st.image(cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB),
+             caption="Annotated Image",
+             use_column_width=True)
 
     st.markdown(f"### 🧪 {len(defects)} defect(s) found")
 
     for idx, (x, y, w, h) in enumerate(defects, 1):
         st.write(f"**Defect {idx}:** Location: (x={x}, y={y}) | Size: {w}x{h} | Area: {w*h}")
-
-else:
-    st.info("No image provided. Please upload, capture, or paste an image.")
