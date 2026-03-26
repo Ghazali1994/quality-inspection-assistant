@@ -5,43 +5,59 @@ from PIL import Image
 from streamlit_paste_button import paste_image_button
 
 
-# -------------------------------
-# High-Contrast Defect Detection
-# -------------------------------
+# --------------------------------
+# Industrial Defect Detection
+# --------------------------------
 def detect_defects_and_annotate(image):
     img = image.copy()
 
-    # Convert to grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Smooth to remove leather texture
+    # Smooth texture
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    # Detect HIGH contrast / light defects
-    thresh = cv2.adaptiveThreshold(
+    # -------- LIGHT DEFECTS ----------
+    light = cv2.adaptiveThreshold(
         blur,
         255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY,   # detect LIGHT areas
+        cv2.THRESH_BINARY,
         21,
-        -3                   # bias toward bright regions
+        -3
     )
+
+    # -------- DARK DEFECTS ----------
+    dark = cv2.adaptiveThreshold(
+        blur,
+        255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV,
+        21,
+        3
+    )
+
+    # -------- EDGE DEFECTS (SCRATCH) ----------
+    edges = cv2.Canny(blur, 40, 120)
+
+    # Combine all
+    combined = cv2.bitwise_or(light, dark)
+    combined = cv2.bitwise_or(combined, edges)
 
     # Morphology cleanup
     kernel = np.ones((3, 3), np.uint8)
 
     morph = cv2.morphologyEx(
-        thresh,
-        cv2.MORPH_OPEN,
+        combined,
+        cv2.MORPH_CLOSE,
         kernel,
         iterations=2
     )
 
     morph = cv2.morphologyEx(
         morph,
-        cv2.MORPH_CLOSE,
+        cv2.MORPH_OPEN,
         kernel,
-        iterations=2
+        iterations=1
     )
 
     # Find contours
@@ -56,24 +72,24 @@ def detect_defects_and_annotate(image):
     for cnt in contours:
         area = cv2.contourArea(cnt)
 
-        # ignore tiny noise
+        # Remove tiny noise
         if area < 120:
             continue
 
         x, y, w, h = cv2.boundingRect(cnt)
 
-        # filter thin noise
         aspect_ratio = w / float(h)
 
-        if 0.1 < aspect_ratio < 10:
+        # Filter unrealistic shapes
+        if 0.05 < aspect_ratio < 15:
             defects.append((x, y, w, h))
 
-            # WHITE bounding box
+            # WHITE BOX
             cv2.rectangle(
                 img,
                 (x, y),
                 (x + w, y + h),
-                (255, 255, 255),  # white
+                (255, 255, 255),
                 2
             )
 
