@@ -157,4 +157,4 @@ if image is not None:
             f"Location: (x={x}, y={y}) | "
             f"Size: {w}x{h} | "
             f"Area: {w*h}"
-        ) colors & avoid low contrast
+        )
