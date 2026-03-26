@@ -6,20 +6,15 @@ from datetime import datetime
 
 os.makedirs("defects", exist_ok=True)
 
+# defect tolerance (area)
 MAX_ALLOWED_DEFECT_AREA = 500
-
 
 def detect_defects_and_annotate(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     _, thresh = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
-
-    contours, _ = cv2.findContours(
-        thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     defects = []
-    defect_id = 1
-
     for cnt in contours:
         area = cv2.contourArea(cnt)
 
@@ -30,32 +25,16 @@ def detect_defects_and_annotate(image):
 
             # color based on tolerance
             if area > MAX_ALLOWED_DEFECT_AREA:
-                color = (0, 0, 255)  # red
-                label = f"DEFECT {defect_id} - REJECT"
+                color = (0, 0, 255)  # red = reject
             else:
-                color = (0, 255, 255)  # yellow
-                label = f"DEFECT {defect_id}"
+                color = (0, 255, 255)  # yellow = allowed small defect
 
-            # draw rectangle
             cv2.rectangle(image, (x, y), (x+w, y+h), color, 2)
-
-            # draw label
-            cv2.putText(
-                image,
-                f"{label} | Area:{int(area)}",
-                (x, y-10),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                color,
-                2
-            )
-
-            defect_id += 1
 
     return image, defects
 
 
-st.title("🏭 AI Leather Defect Inspection")
+st.title("🏭 AI Leather Inspection System")
 
 start = st.button("▶ Start Inspection")
 stop = st.button("⏹ Stop")
@@ -64,6 +43,7 @@ frame_placeholder = st.empty()
 status_placeholder = st.empty()
 stats_placeholder = st.empty()
 
+# counters
 total_count = 0
 reject_count = 0
 
@@ -79,7 +59,11 @@ if start:
 
         annotated, defects = detect_defects_and_annotate(frame)
 
-        reject = any(d[4] > MAX_ALLOWED_DEFECT_AREA for d in defects)
+        # reject logic
+        reject = False
+        for d in defects:
+            if d[4] > MAX_ALLOWED_DEFECT_AREA:
+                reject = True
 
         if reject:
             status = "❌ NOT OK"
@@ -87,7 +71,6 @@ if start:
 
             filename = datetime.now().strftime("defects/reject_%H%M%S.jpg")
             cv2.imwrite(filename, annotated)
-
         else:
             status = "✅ OK"
 
@@ -102,10 +85,10 @@ if start:
 
         stats_placeholder.markdown(f"""
 ### 📊 Inspection Stats
-Total: {total_count}  
+Total Inspected: {total_count}  
 Rejected: {reject_count}  
 Reject Rate: {reject_rate:.2f}%  
-Defects: {len(defects)}
+Defects Found: {len(defects)}
 """)
 
         if stop:
