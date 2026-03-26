@@ -6,7 +6,7 @@ from streamlit_paste_button import paste_image_button
 
 
 # -------------------------------
-# Improved Defect Detection Logic
+# High-Contrast Defect Detection
 # -------------------------------
 def detect_defects_and_annotate(image):
     img = image.copy()
@@ -14,20 +14,20 @@ def detect_defects_and_annotate(image):
     # Convert to grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Remove leather texture noise
+    # Smooth to remove leather texture
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    # Adaptive threshold (lighting independent)
+    # Detect HIGH contrast / light defects
     thresh = cv2.adaptiveThreshold(
         blur,
         255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY_INV,
+        cv2.THRESH_BINARY,   # detect LIGHT areas
         21,
-        3
+        -3                   # bias toward bright regions
     )
 
-    # Morphology to remove noise
+    # Morphology cleanup
     kernel = np.ones((3, 3), np.uint8)
 
     morph = cv2.morphologyEx(
@@ -56,24 +56,24 @@ def detect_defects_and_annotate(image):
     for cnt in contours:
         area = cv2.contourArea(cnt)
 
-        # Filter small noise
-        if area < 150:
+        # ignore tiny noise
+        if area < 120:
             continue
 
         x, y, w, h = cv2.boundingRect(cnt)
 
-        # Filter unrealistic shapes
+        # filter thin noise
         aspect_ratio = w / float(h)
 
-        if 0.15 < aspect_ratio < 8:
+        if 0.1 < aspect_ratio < 10:
             defects.append((x, y, w, h))
 
-            # Draw bounding box
+            # WHITE bounding box
             cv2.rectangle(
                 img,
                 (x, y),
                 (x + w, y + h),
-                (0, 0, 255),
+                (255, 255, 255),  # white
                 2
             )
 
@@ -87,7 +87,6 @@ st.set_page_config(page_title="AI Leather Defect Detection Tool")
 st.title("AI Leather Defect Detection Tool")
 st.write("Upload, Capture, or Paste an image to inspect for defects.")
 
-# Input selector
 option = st.radio(
     "Choose input method:",
     ["Upload Image", "Capture from Camera", "Paste Image"]
@@ -95,9 +94,8 @@ option = st.radio(
 
 image = None
 
-# -------------------------------
-# Upload Image
-# -------------------------------
+
+# Upload
 if option == "Upload Image":
     uploaded_file = st.file_uploader(
         "Choose an image",
@@ -113,9 +111,7 @@ if option == "Upload Image":
         image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
 
-# -------------------------------
-# Camera Input
-# -------------------------------
+# Camera
 elif option == "Capture from Camera":
     camera_image = st.camera_input("Capture Image")
 
@@ -130,9 +126,7 @@ elif option == "Capture from Camera":
         image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
 
-# -------------------------------
-# Paste Image
-# -------------------------------
+# Paste
 elif option == "Paste Image":
     pasted = paste_image_button("📋 Paste Image")
 
@@ -145,9 +139,7 @@ elif option == "Paste Image":
         )
 
 
-# -------------------------------
-# Run Detection
-# -------------------------------
+# Run detection
 if image is not None:
     annotated_image, defects = detect_defects_and_annotate(image)
 
