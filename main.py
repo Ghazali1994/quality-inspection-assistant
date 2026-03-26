@@ -71,5 +71,3 @@ if image is not None:
         st.write(
             f"**Defect {idx}:** Location: (x={x}, y={y}), Size: {w}x{h}, Area: {w*h}"
         )
-
-what is this?
