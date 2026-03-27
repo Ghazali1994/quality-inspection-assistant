@@ -6,7 +6,7 @@ from streamlit_paste_button import paste_image_button
 
 def detect_defects_and_annotate(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    _, thresh = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
+    _, thresh = cv2.threshold(gray, 120, 255, cv2.THRESH_BINARY_INV)
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     defects = []
