@@ -61,14 +61,6 @@ elif option == "Capture from Camera":
         file_bytes = np.asarray(bytearray(bytes_data), dtype=np.uint8)
         image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
-# Paste
-elif option == "Paste Image":
-    pasted = paste_image_button("📋 Paste Image")
-    if pasted.image_data is not None:
-        pil_image = pasted.image_data
-        image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
-
-
 # Run detection
 if image is not None:
     annotated_image, defects = detect_defects_and_annotate(image.copy())
