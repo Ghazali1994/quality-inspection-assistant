@@ -37,11 +37,11 @@ def detect_defects_and_annotate(image):
 
 st.set_page_config(page_title="AI Leather Defect Detection Tool")
 st.title("AI Leather Defect Detection Tool")
-st.write("Upload, Capture, or Paste an image to inspect for defects.")
+st.write("Upload or Capture an image to inspect for defects.")
 
 option = st.radio(
     "Choose input method:",
-    ["Upload Image", "Capture from Camera", "Paste Image"]
+    ["Upload Image", "Capture from Camera"]
 )
 
 image = None
