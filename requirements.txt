@@ -5,3 +5,8 @@ numpy
 Pillow
 ultralytics
 streamlit-paste-button
+opencv-python
+numpy
+Pillow
+streamlit
+streamlit-paste-button
