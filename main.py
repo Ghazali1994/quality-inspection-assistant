@@ -1,3 +1,4 @@
+```python
 import streamlit as st
 import cv2
 import numpy as np
@@ -15,7 +16,15 @@ def detect_defects_and_annotate(image):
         if area > 100:
             x, y, w, h = cv2.boundingRect(cnt)
             defects.append((x, y, w, h))
-            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+            # WHITE BOX (changed from red to white)
+            cv2.rectangle(
+                image,
+                (x, y),
+                (x + w, y + h),
+                (255, 255, 255),  # white
+                2
+            )
 
     return image, defects
 
@@ -24,7 +33,6 @@ st.set_page_config(page_title="AI Leather Defect Detection Tool")
 st.title("AI Leather Defect Detection Tool")
 st.write("Upload, Capture, or Paste an image to inspect for defects.")
 
-# selector
 option = st.radio(
     "Choose input method:",
     ["Upload Image", "Capture from Camera", "Paste Image"]
@@ -71,3 +79,4 @@ if image is not None:
         st.write(
             f"**Defect {idx}:** Location: (x={x}, y={y}), Size: {w}x{h}, Area: {w*h}"
         )
+```
