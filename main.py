@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import cv2
 import numpy as np
@@ -98,4 +97,3 @@ if image is not None:
         st.write(
             f"**Defect {idx}:** Location: (x={x}, y={y}), Size: {w}x{h}, Area: {w*h}"
         )
-```
